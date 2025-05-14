@@ -1,6 +1,7 @@
 import numpy as np
 import math
 
+
 def main():
     ##### Simulation Variables
 
@@ -22,10 +23,12 @@ def main():
     asymmetric_link_lengths = np.array([25, 25])
     #link_length = np.sum(asymmetric_link_lengths)
 
-    simulator(number_attempts, link_length, is_symmetric, num_repeaters, use_randomized_asymmetric, asymmetric_link_lengths)
+    initial_fidelity = 0.85
+
+    simulator(number_attempts, link_length, is_symmetric, num_repeaters, use_randomized_asymmetric, asymmetric_link_lengths, initial_fidelity)
 
 
-def simulator(number_attempts, link_length, is_symmetric, num_repeaters, use_randomized_asymmetric, asymmetric_link_lengths):
+def simulator(number_attempts, link_length, is_symmetric, num_repeaters, use_randomized_asymmetric, asymmetric_link_lengths, initial_fidelity):
     ##### Variables which will be calculated based on above inputs
 
     #success_rate based on link distance between member in chain, will be float if symmetric and list of floats if asymmetric
@@ -33,6 +36,86 @@ def simulator(number_attempts, link_length, is_symmetric, num_repeaters, use_ran
 
     #delay between two members in quantum chain
     time_entanglement = 0
+    
+    werner_state_list = []
+    fidelity_values = []
+
+    #standard constants for ket 0 and 1 
+    zero = np.array([1, 0])
+    one = np.array([0, 1])
+    
+    # Define phi plus Bell state
+    phi_plus = (np.kron(zero, zero) + np.kron(one, one)) / np.sqrt(2)
+    phi_plus_dm = np.outer(phi_plus, phi_plus)
+    
+    # generate Werner state with fidelity f
+    def werner_state(f):
+        p = (4 * f - 1) / 3
+        identity = np.eye(4)
+        return p * phi_plus_dm + (1 - p) * identity / 4
+
+    # Tensor product of Werner states ρ_AB ⊗ ρ_BC (total 4 qubits: A,B,C,D)
+    def rho_ABCD(f):
+        rho_AB = werner_state(f)
+        rho_BC = werner_state(f)
+        return np.kron(rho_AB, rho_BC)
+
+    # Define Bell state projector |Φ⁺⟩⟨Φ⁺| on qubits B and C (1 and 2)
+    def bell_projector_BC():
+        phi = (np.kron(zero, zero) + np.kron(one, one)) / np.sqrt(2)
+        return np.outer(phi, phi)
+
+    # Build full projection operator: I_A ⊗ P_BC ⊗ I_D
+    def full_projector_BC():
+        P_BC = bell_projector_BC()
+        I_A = np.eye(2)
+        I_D = np.eye(2)
+        return np.kron(np.kron(I_A, P_BC), I_D)
+
+    # Apply projection and normalize
+    def apply_projection(rho_ABCD, P_full):
+        rho_proj = P_full @ rho_ABCD @ P_full
+        prob = np.trace(rho_proj)
+        return rho_proj / prob if prob != 0 else rho_proj
+
+    # Partial trace over qubits B and C (indices 1 and 2)
+    def partial_trace_two(rho, dims, keep):
+        reshaped = rho.reshape(dims + dims)
+        trace_axes = [i for i in range(len(dims)) if i not in keep]
+        for axis in sorted(trace_axes, reverse=True):
+            reshaped = np.trace(reshaped, axis1=axis, axis2=axis + len(dims))
+        final_dim = int(np.prod([dims[i] for i in keep]))
+        return reshaped.reshape((final_dim, final_dim))
+
+    # Fidelity with |Φ⁺⟩
+    def fidelity_with_phi_plus(rho):
+        return np.real(np.vdot(phi_plus, rho @ phi_plus))
+
+    # Run full procedure for a chain with Werner states
+    def entanglement_swapping_chain(f_initial):
+        # Step 1: Generate the 4-qubit state
+        rho_4q = rho_ABCD(f_initial)
+        
+        # Step 2: Define the Bell-state projector on qubits B and C
+        P_full = full_projector_BC()
+
+        # Step 3: Apply Bell-state measurement and projection
+        rho_projected = apply_projection(rho_4q, P_full)
+
+        # Step 4: Trace out qubits B and C (indices 1 and 2)
+        rho_AD = partial_trace_two(rho_projected, [2,2,2,2], keep=[0,3])
+
+        # Step 5: Compute fidelity with |Φ⁺⟩
+        fidelity = fidelity_with_phi_plus(rho_AD)
+        return fidelity
+
+    # Test the chain with Werner states
+    fidelity = entanglement_swapping_chain(initial_fidelity)
+
+    #generate list of werner states for each link
+    print(f"Fidelity after entanglement swapping: {fidelity}")
+    for i in range(num_repeaters + 1):
+        werner_state_list.append(werner_state(initial_fidelity))
 
     #Function to get Success Rate of Entanglement from Barrett-Kok based on Link Length - L_att is 22 km
     def get_success_rate(link_length):
