@@ -9,26 +9,24 @@ def main():
     number_attempts = 10 ** 6
 
     #specified in km, total distance between two endpoints
-    link_length = 50.0
+    link_length = 100.0
 
     #whether we have symmetric repeater chain lengths
     is_symmetric = False
 
-    num_repeaters = 1
+    num_repeaters = 2
 
     #Option to generate randomized asymmetric repeater chains given number of repeaters and links, only used if is_symmetric is False
     use_randomized_asymmetric = False
 
     #only used if not using randomized asymmetric, lets you hardcode asymmetric_link_lengths - number of elements should be # of quantum repeaters + 1
-    asymmetric_link_lengths = np.array([25, 25])
+    asymmetric_link_lengths = np.array([20, 25, 30])
     #link_length = np.sum(asymmetric_link_lengths)
 
-    initial_fidelity = 0.85
-
-    simulator(number_attempts, link_length, is_symmetric, num_repeaters, use_randomized_asymmetric, asymmetric_link_lengths, initial_fidelity)
+    simulator(number_attempts, link_length, is_symmetric, num_repeaters, use_randomized_asymmetric, asymmetric_link_lengths)
 
 
-def simulator(number_attempts, link_length, is_symmetric, num_repeaters, use_randomized_asymmetric, asymmetric_link_lengths, initial_fidelity):
+def simulator(number_attempts, link_length, is_symmetric, num_repeaters, use_randomized_asymmetric, asymmetric_link_lengths):
     ##### Variables which will be calculated based on above inputs
 
     #success_rate based on link distance between member in chain, will be float if symmetric and list of floats if asymmetric
@@ -37,9 +35,6 @@ def simulator(number_attempts, link_length, is_symmetric, num_repeaters, use_ran
     #delay between two members in quantum chain
     time_entanglement = 0
     
-    werner_state_list = []
-    fidelity_values = []
-
     #standard constants for ket 0 and 1 
     zero = np.array([1, 0])
     one = np.array([0, 1])
@@ -55,9 +50,7 @@ def simulator(number_attempts, link_length, is_symmetric, num_repeaters, use_ran
         return p * phi_plus_dm + (1 - p) * identity / 4
 
     # Tensor product of Werner states ρ_AB ⊗ ρ_BC (total 4 qubits: A,B,C,D)
-    def rho_ABCD(f):
-        rho_AB = werner_state(f)
-        rho_BC = werner_state(f)
+    def rho_ABCD(rho_AB, rho_BC):
         return np.kron(rho_AB, rho_BC)
 
     # Define Bell state projector |Φ⁺⟩⟨Φ⁺| on qubits B and C (1 and 2)
@@ -92,30 +85,52 @@ def simulator(number_attempts, link_length, is_symmetric, num_repeaters, use_ran
         return np.real(np.vdot(phi_plus, rho @ phi_plus))
 
     # Run full procedure for a chain with Werner states
-    def entanglement_swapping_chain(f_initial):
+    def entanglement_swapping_chain(rho_AB, rho_BC):
         # Step 1: Generate the 4-qubit state
-        rho_4q = rho_ABCD(f_initial)
-        
+        rho_4q = rho_ABCD(rho_AB, rho_BC)
         # Step 2: Define the Bell-state projector on qubits B and C
         P_full = full_projector_BC()
-
         # Step 3: Apply Bell-state measurement and projection
         rho_projected = apply_projection(rho_4q, P_full)
-
         # Step 4: Trace out qubits B and C (indices 1 and 2)
         rho_AD = partial_trace_two(rho_projected, [2,2,2,2], keep=[0,3])
 
         # Step 5: Compute fidelity with |Φ⁺⟩
         fidelity = fidelity_with_phi_plus(rho_AD)
-        return fidelity
+        return fidelity, rho_AD
 
-    # Test the chain with Werner states
-    fidelity = entanglement_swapping_chain(initial_fidelity)
+    #based on link length, initialize each werner state with different fidelity
+    def entanglement_fidelity(L, F0=1.0, alpha=0.01, F_noise=0.25):
+        return F0 * np.exp(-alpha * L) + (1 - np.exp(-alpha * L)) * F_noise
+    
+    initial_fidelity_values = []
+
+    for i in range(num_repeaters + 1):
+        if is_symmetric:
+            initial_fidelity_values.append(entanglement_fidelity(link_length / (num_repeaters + 1)))
+        else:
+            initial_fidelity_values.append(entanglement_fidelity(asymmetric_link_lengths[i]))
+
+    werner_state_list = []
+    fidelity_values = []
+
+    print("Initial fidelity of werner states based on link length: ", end="")
+    print(initial_fidelity_values)
+
+    fidelity_values.append(initial_fidelity_values[0])
 
     #generate list of werner states for each link
-    print(f"Fidelity after entanglement swapping: {fidelity}")
     for i in range(num_repeaters + 1):
-        werner_state_list.append(werner_state(initial_fidelity))
+        werner_state_list.append(werner_state(initial_fidelity_values[i]))
+
+    #sequentially perform entanglement swapping with each werner state in chain and calculate fidelity after
+    for i in range(num_repeaters):
+        fidelity, rho_AD = entanglement_swapping_chain(werner_state_list[i], werner_state_list[i + 1])
+        werner_state_list[i + 1] = rho_AD
+        fidelity_values.append(fidelity)
+
+    print("Fidelity values after # of repeaters: ", end="")
+    print(fidelity_values)
 
     #Function to get Success Rate of Entanglement from Barrett-Kok based on Link Length - L_att is 22 km
     def get_success_rate(link_length):
@@ -179,15 +194,43 @@ def simulator(number_attempts, link_length, is_symmetric, num_repeaters, use_ran
     else:
         #time for each entanglement attempt
         time_entanglement = 2 * (asymmetric_link_lengths * 1000) / (2*10 ** 8)
-        entanglement_attempts = entanglement_attempts * 1.0
+        total_entanglement_time = entanglement_attempts * 1.0
         #multiply by number of attempts with respective time_entanglement to link_length
         for i in range(len(entanglement_attempts)):
-            entanglement_attempts[i] = np.multiply(entanglement_attempts[i], time_entanglement) + time_entanglement
+            total_entanglement_time[i] = np.multiply(entanglement_attempts[i], time_entanglement) + time_entanglement
         #get largest time for entanglement which is blocker
-        total_entanglement_time = np.max(entanglement_attempts, axis=1)
+        final_entanglement_time = np.max(total_entanglement_time, axis=1)
 
-    print("Variance of time: " + str(np.var(total_entanglement_time)))
-    print("Mean time (seconds): " + str(np.mean(total_entanglement_time)))
+    print("Variance of time: " + str(np.var(final_entanglement_time)))
+    print("Mean time (seconds): " + str(np.mean(final_entanglement_time)))
+
+    results = {
+        #intitialized variables
+        "number_attempts": number_attempts,
+        "link_length": link_length,
+        "is_symmetric": is_symmetric,
+        "num_repeaters": num_repeaters,
+        "use_randomized_asymmetric": use_randomized_asymmetric,
+        "asymmetric_link_lengths": asymmetric_link_lengths,
+
+        #fidelity values of werner states based on initial link length
+        "initial_fidelity_values": initial_fidelity_values,
+
+        #fideility after entangling each repeater sequentially
+        "fidelity_values": fidelity_values,
+
+        #success rate of entanglement based on link length
+        "success_rate":success_rate,
+
+        "entanglement_attempts": entanglement_attempts,
+
+        "mean_attempts": np.mean(attempts_array),
+        "variance_attempts": np.var(attempts_array),
+        "mean_time": np.mean(total_entanglement_time),
+        "variance_time": np.var(total_entanglement_time)
+    }
+
+    return results
 
 if __name__=="__main__":
     main()
