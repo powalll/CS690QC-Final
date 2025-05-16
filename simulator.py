@@ -117,6 +117,8 @@ def simulator(number_attempts, link_length, is_symmetric, num_repeaters, use_ran
     print("Initial fidelity of werner states based on link length: ", end="")
     print(initial_fidelity_values)
 
+    #initial_fidelity_values = [0.85, 0.85, 0.85]
+
     fidelity_values.append(initial_fidelity_values[0])
 
     #generate list of werner states for each link
@@ -127,7 +129,7 @@ def simulator(number_attempts, link_length, is_symmetric, num_repeaters, use_ran
     for i in range(num_repeaters):
         fidelity, rho_AD = entanglement_swapping_chain(werner_state_list[i], werner_state_list[i + 1])
         werner_state_list[i + 1] = rho_AD
-        fidelity_values.append(fidelity)
+        fidelity_values.append(2 * fidelity)
 
     print("Fidelity values after # of repeaters: ", end="")
     print(fidelity_values)
