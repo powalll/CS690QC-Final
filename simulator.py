@@ -9,24 +9,31 @@ def main():
     number_attempts = 10 ** 6
 
     #specified in km, total distance between two endpoints
-    link_length = 50
+    link_length = 100
 
     #whether we have symmetric repeater chain lengths
-    is_symmetric = True
+    is_symmetric = False
 
-    num_repeaters = 1
+    num_repeaters = 10
 
     #Option to generate randomized asymmetric repeater chains given number of repeaters and links, only used if is_symmetric is False
-    use_randomized_asymmetric = False
+    use_randomized_asymmetric = True
 
     #only used if not using randomized asymmetric, lets you hardcode asymmetric_link_lengths - number of elements should be # of quantum repeaters + 1
-    asymmetric_link_lengths = np.array([25, 25])
+    asymmetric_link_lengths = np.array([])
+
+    #boolean for deciding whether to use custom fidelity or allow link length to determine initial values
+    use_initial_fidelity = True
+
+    #initial fidelity for werner states
+    initial_fidelity = 0.85
+
     #link_length = np.sum(asymmetric_link_lengths)
 
-    simulator(number_attempts, link_length, is_symmetric, num_repeaters, use_randomized_asymmetric, asymmetric_link_lengths)
+    simulator(number_attempts, link_length, is_symmetric, num_repeaters, use_randomized_asymmetric, asymmetric_link_lengths, use_initial_fidelity, initial_fidelity)
 
 
-def simulator(number_attempts, link_length, is_symmetric, num_repeaters, use_randomized_asymmetric, asymmetric_link_lengths):
+def simulator(number_attempts, link_length, is_symmetric, num_repeaters, use_randomized_asymmetric, asymmetric_link_lengths, use_initial_fidelity, initial_fidelity):
     ##### Variables which will be calculated based on above inputs
 
     #success_rate based on link distance between member in chain, will be float if symmetric and list of floats if asymmetric
@@ -105,8 +112,19 @@ def simulator(number_attempts, link_length, is_symmetric, num_repeaters, use_ran
     
     initial_fidelity_values = []
 
+    #creates randomized array for asymmetric link lengths 
+    def generate_links_with_sum(num_links, link_length):
+        arr = np.random.rand(num_links)
+        arr = arr / arr.sum() * link_length
+        return arr
+
+    if use_randomized_asymmetric:
+        asymmetric_link_lengths = generate_links_with_sum(num_repeaters + 1, link_length)
+
     for i in range(num_repeaters + 1):
-        if is_symmetric:
+        if use_initial_fidelity:
+            initial_fidelity_values.append(initial_fidelity)
+        elif is_symmetric:
             initial_fidelity_values.append(entanglement_fidelity(link_length / (num_repeaters + 1)))
         else:
             initial_fidelity_values.append(entanglement_fidelity(asymmetric_link_lengths[i]))
@@ -116,8 +134,6 @@ def simulator(number_attempts, link_length, is_symmetric, num_repeaters, use_ran
 
     print("Initial fidelity of werner states based on link length: ", end="")
     print(initial_fidelity_values)
-
-    #initial_fidelity_values = [0.85, 0.85, 0.85]
 
     fidelity_values.append(initial_fidelity_values[0])
 
@@ -149,11 +165,6 @@ def simulator(number_attempts, link_length, is_symmetric, num_repeaters, use_ran
             success_rate.append(get_success_rate(link))
         return success_rate
 
-    #creates randomized array for asymmetric link lengths 
-    def generate_links_with_sum(num_links, link_length):
-        arr = np.random.rand(num_links)
-        arr = arr / arr.sum() * link_length
-        return arr
     if is_symmetric:
         #use symmetric link length to get probability - divide by two because Barret-Kok scheme is used
         distance_from_repeater = (link_length / 2) / (num_repeaters + 1)
@@ -162,8 +173,6 @@ def simulator(number_attempts, link_length, is_symmetric, num_repeaters, use_ran
         #get time in seconds by dividing distance by speed of light 
         time_entanglement = (link_length / (num_repeaters + 1) * 1000) / (2*10 ** 8)
     else:
-        if use_randomized_asymmetric:
-            asymmetric_link_lengths = generate_links_with_sum(num_repeaters + 1, link_length)
         #divide by two because Barret-Kok scheme is used
         success_rate = get_list_of_success_rate(asymmetric_link_lengths / 2)
         print("Success Rates for each link: ", end="")
@@ -227,8 +236,10 @@ def simulator(number_attempts, link_length, is_symmetric, num_repeaters, use_ran
         "fidelity_values": fidelity_values,
 
         #success rate of entanglement based on link length
-        "success_rate":success_rate,
-
+        "link_success_rate":success_rate,
+        "overall_success_rate": overall_entanglement_success_rate,
+        "mean_overall_success_rate": np.mean(overall_entanglement_success_rate),
+        "variance_overall_success_rate": np.var(overall_entanglement_success_rate),
         "entanglement_attempts": entanglement_attempts,
 
         "mean_attempts": np.mean(attempts_array),
