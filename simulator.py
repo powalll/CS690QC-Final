@@ -9,18 +9,18 @@ def main():
     number_attempts = 10 ** 6
 
     #specified in km, total distance between two endpoints
-    link_length = 100.0
+    link_length = 50
 
     #whether we have symmetric repeater chain lengths
-    is_symmetric = False
+    is_symmetric = True
 
-    num_repeaters = 2
+    num_repeaters = 1
 
     #Option to generate randomized asymmetric repeater chains given number of repeaters and links, only used if is_symmetric is False
     use_randomized_asymmetric = False
 
     #only used if not using randomized asymmetric, lets you hardcode asymmetric_link_lengths - number of elements should be # of quantum repeaters + 1
-    asymmetric_link_lengths = np.array([20, 25, 30])
+    asymmetric_link_lengths = np.array([25, 25])
     #link_length = np.sum(asymmetric_link_lengths)
 
     simulator(number_attempts, link_length, is_symmetric, num_repeaters, use_randomized_asymmetric, asymmetric_link_lengths)
@@ -176,6 +176,11 @@ def simulator(number_attempts, link_length, is_symmetric, num_repeaters, use_ran
     #Simulate the number of entanglement attempts for each link - the provided p will either be a float if symmetric or a list of floats if asymmetric
     entanglement_attempts = np.random.geometric(p=success_rate, size=(number_attempts, num_repeaters + 1))
 
+    #get overall success rate of quantum repeater chain by taking successful generations over total attempts
+    overall_entanglement_success_rate = (num_repeaters + 1) / np.sum(entanglement_attempts, axis=1)
+    print("Mean of overall chain success rate: " + str(np.mean(overall_entanglement_success_rate)))
+    print("Variance of overall chain success rate: " + str(np.var(overall_entanglement_success_rate)))
+
     #Use maximal tries which will be the holdover in time
     print("Maximum of entanglement attempts: ", end="")
     max_entangle_attempts = np.max(entanglement_attempts, axis=1)
@@ -188,18 +193,18 @@ def simulator(number_attempts, link_length, is_symmetric, num_repeaters, use_ran
     print("Mean attempts: " + str(np.mean(attempts_array)))
     if is_symmetric:
         #convert attempts to time buy multiplying by time of entanglement with attempts and adding classical communication time
-        total_entanglement_time = attempts_array * 2.0
-        total_entanglement_time *= time_entanglement
+        final_entanglement_time = attempts_array * 2.0
+        final_entanglement_time *= time_entanglement
 
         #add classical time to send message
-        total_entanglement_time += time_entanglement 
+        final_entanglement_time += time_entanglement 
     else:
         #time for each entanglement attempt
-        time_entanglement = 2 * (asymmetric_link_lengths * 1000) / (2*10 ** 8)
+        time_entanglement = (asymmetric_link_lengths * 1000) / (2*10 ** 8)
         total_entanglement_time = entanglement_attempts * 1.0
         #multiply by number of attempts with respective time_entanglement to link_length
         for i in range(len(entanglement_attempts)):
-            total_entanglement_time[i] = np.multiply(entanglement_attempts[i], time_entanglement) + time_entanglement
+            total_entanglement_time[i] = np.multiply(entanglement_attempts[i], 2 * time_entanglement) + time_entanglement
         #get largest time for entanglement which is blocker
         final_entanglement_time = np.max(total_entanglement_time, axis=1)
 
@@ -228,8 +233,8 @@ def simulator(number_attempts, link_length, is_symmetric, num_repeaters, use_ran
 
         "mean_attempts": np.mean(attempts_array),
         "variance_attempts": np.var(attempts_array),
-        "mean_time": np.mean(total_entanglement_time),
-        "variance_time": np.var(total_entanglement_time)
+        "mean_time": np.mean(final_entanglement_time),
+        "variance_time": np.var(final_entanglement_time)
     }
 
     return results
