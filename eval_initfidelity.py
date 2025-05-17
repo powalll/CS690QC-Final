@@ -4,8 +4,7 @@ from simulator import simulator
 
 def evaluate_initfidelity_performance(link_length=100, num_repeaters=2, min_init=0.5, max_init=1.0, step=0.02):
     init_fidelities = np.arange(min_init, max_init + step, step)
-    final_fidelities = []
-    
+    final_fidelities = [] 
     for init_f in init_fidelities:
         print(f"Simulating with initial fidelity: {init_f:.2f}")
         results = simulator(
@@ -20,7 +19,6 @@ def evaluate_initfidelity_performance(link_length=100, num_repeaters=2, min_init
         )
         final_fidelities.append(results['fidelity_values'][-1])
         print(f"Final Fidelity: {final_fidelities[-1]:.4f}")
-    
     # Plot results
     plt.figure(figsize=(7, 5))
     plt.plot(init_fidelities, final_fidelities, 'b-o')

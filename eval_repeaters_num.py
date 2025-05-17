@@ -29,16 +29,14 @@ def evaluate_repeater_performance(link_length, max_repeaters=10):
             asymmetric_link_lengths=np.array([]),
             use_initial_fidelity=True,
             initial_fidelity=0.85
-        )
-        
+        )        
         sym_fidelities.append(sym_results['fidelity_values'][-1])
         sym_times.append(sym_results['mean_time'])
         sym_success_rates.append(np.mean(sym_results['overall_success_rate']))
-        
         print(f"Final Fidelity: {sym_fidelities[-1]:.4f}")
         print(f"Mean Time: {sym_times[-1]:.4f} seconds")
         print(f"Success Rate: {sym_success_rates[-1]:.4f}")
-        
+
         # Asymmetric 
         print("\nRandom Asymmetric")
         asym_results = simulator(
@@ -51,16 +49,14 @@ def evaluate_repeater_performance(link_length, max_repeaters=10):
             use_initial_fidelity=True,
             initial_fidelity=0.85
         )
-        
         asym_fidelities.append(asym_results['fidelity_values'][-1])
         asym_times.append(asym_results['mean_time'])
         asym_success_rates.append(np.mean(asym_results['overall_success_rate']))
-        
         print(f"Final Fidelity: {asym_fidelities[-1]:.4f}")
         print(f"Mean Time: {asym_times[-1]:.4f} seconds")
         print(f"Success Rate: {asym_success_rates[-1]:.4f}")
     
-    # Plot results
+    # Subplots configuration
     plt.figure(figsize=(15, 5))
     
     # Final Fidelity

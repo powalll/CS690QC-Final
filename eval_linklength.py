@@ -4,8 +4,7 @@ from simulator import simulator
 
 def evaluate_linklength_successrate(min_length=50, max_length=400, step=50, num_repeaters=2):
     link_lengths = np.arange(min_length, max_length + 1, step)
-    success_rates = []
-    
+    success_rates = [] 
     for link_length in link_lengths:
         print(f"Simulating with link length: {link_length} km")
         results = simulator(
