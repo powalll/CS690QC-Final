@@ -1,6 +1,6 @@
 # CS690QC-Final
 # Dependencies
-``numpy>=2.0``
+``numpy>=2.0，matplotlib==3.9.2``
 # Example Usage
 ``python simulator.py``
 # Reproduce The Evaluation 
