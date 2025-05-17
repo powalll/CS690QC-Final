@@ -3,21 +3,8 @@ import matplotlib.pyplot as plt
 from simulator import simulator
 
 def evaluate_initfidelity_performance(link_length=100, num_repeaters=2, min_init=0.5, max_init=1.0, step=0.02):
-    """
-    Evaluate how the final fidelity changes with initial fidelity in the symmetric case.
-    
-    Parameters:
-    link_length: Total link length (km)
-    num_repeaters: Number of repeaters (fixed)
-    min_init: Minimum initial fidelity
-    max_init: Maximum initial fidelity
-    step: Step size for initial fidelity
-    """
     init_fidelities = np.arange(min_init, max_init + step, step)
     final_fidelities = []
-    
-    print(f"\nEvaluating final fidelity vs initial fidelity (link_length={link_length}, repeaters={num_repeaters})")
-    print("=" * 60)
     
     for init_f in init_fidelities:
         print(f"Simulating with initial fidelity: {init_f:.2f}")

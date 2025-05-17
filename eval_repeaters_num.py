@@ -15,14 +15,9 @@ def evaluate_repeater_performance(link_length, max_repeaters=10):
     asym_times = []
     asym_success_rates = []
     
-    print(f"\nEvaluating Repeater Chains (Link Length: {link_length} km)")
-    print("=" * 60)
     
     # Simulate for each repeater number
-    for num_repeaters in repeater_numbers:
-        print(f"\nSimulating with {num_repeaters} repeaters")
-        print("-" * 40)
-        
+    for num_repeaters in repeater_numbers:        
         # Symmetric 
         print("Symmetric")
         sym_results = simulator(

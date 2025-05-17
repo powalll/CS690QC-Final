@@ -3,20 +3,8 @@ import matplotlib.pyplot as plt
 from simulator import simulator
 
 def evaluate_linklength_successrate(min_length=50, max_length=400, step=50, num_repeaters=2):
-    """
-    Evaluate how the success rate changes with link length in the symmetric case.
-    
-    Parameters:
-    min_length: Minimum total link length (km)
-    max_length: Maximum total link length (km)
-    step: Step size for link length (km)
-    num_repeaters: Number of repeaters (fixed)
-    """
     link_lengths = np.arange(min_length, max_length + 1, step)
     success_rates = []
-    
-    print(f"\nEvaluating success rate vs link length (Repeaters: {num_repeaters})")
-    print("=" * 60)
     
     for link_length in link_lengths:
         print(f"Simulating with link length: {link_length} km")
