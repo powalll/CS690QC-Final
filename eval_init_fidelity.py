@@ -19,6 +19,7 @@ def evaluate_initfidelity_performance(link_length=100, num_repeaters=2, min_init
         )
         final_fidelities.append(results['fidelity_values'][-1])
         print(f"Final Fidelity: {final_fidelities[-1]:.4f}")
+        print()
     # Plot results
     plt.figure(figsize=(7, 5))
     plt.plot(init_fidelities, final_fidelities, 'b-o')

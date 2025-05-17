@@ -12,18 +12,18 @@ def main():
     link_length = 100
 
     #whether we have symmetric repeater chain lengths
-    is_symmetric = False
+    is_symmetric = True
 
-    num_repeaters = 10
+    num_repeaters = 4
 
     #Option to generate randomized asymmetric repeater chains given number of repeaters and links, only used if is_symmetric is False
-    use_randomized_asymmetric = True
+    use_randomized_asymmetric = False
 
     #only used if not using randomized asymmetric, lets you hardcode asymmetric_link_lengths - number of elements should be # of quantum repeaters + 1
-    asymmetric_link_lengths = np.array([])
+    asymmetric_link_lengths = np.array([25,25,25,25])
 
     #boolean for deciding whether to use custom fidelity or allow link length to determine initial values
-    use_initial_fidelity = True
+    use_initial_fidelity = False
 
     #initial fidelity for werner states
     initial_fidelity = 0.85

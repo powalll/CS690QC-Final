@@ -20,7 +20,7 @@ def evaluate_linklength_successrate(min_length=50, max_length=400, step=50, num_
         mean_success_rate = np.mean(results['overall_success_rate'])
         success_rates.append(mean_success_rate)
         print(f"Mean Success Rate: {mean_success_rate:.4f}")
-    
+        print()
     # Plot results
     plt.figure(figsize=(7, 5))
     plt.plot(link_lengths, success_rates, 'b-o')
